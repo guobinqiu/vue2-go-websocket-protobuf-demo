@@ -2,4 +2,4 @@
 
 利用 WebSocket 协议层的 Ping-Pong 机制（即 WebSocket.PingMessage 和 PongMessage）
 
-[vue2-go-websocket-protobuf-demo2](https://github.com/guobinqiu/vue2-go-websocket-protobuf-demo2/edit/main/README.md)
+[vue2-go-websocket-protobuf-demo2](https://github.com/guobinqiu/vue2-go-websocket-protobuf-demo2)

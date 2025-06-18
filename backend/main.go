@@ -31,7 +31,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	// 监听 pong 消息, 收到后更新 lastPongUnix
 	ws.SetPongHandler(func(string) error {
-		log.Println("收到客户端Pong")
+		log.Println("收到客户端pong")
 		atomic.StoreInt64(&lastPongUnix, time.Now().Unix())
 		return nil
 	})
@@ -92,7 +92,14 @@ func startHeartbeat(ws *websocket.Conn, lastPongUnix *int64) {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		log.Println("服务端发送Ping")
+		lastPong := time.Unix(atomic.LoadInt64(lastPongUnix), 0)
+		if time.Since(lastPong) > pingInterval+pongTimeout { // 距离上次收到Pong已经超过了8秒就判定客户端断线
+			log.Println("未收到客户端pong，断开连接")
+			ws.Close()
+			return
+		}
+
+		log.Println("服务端发送ping")
 
 		// 若客户端断网或关闭连接，WriteMessage 会报错
 		if err := ws.WriteMessage(websocket.PingMessage, []byte("")); err != nil {
@@ -102,16 +109,9 @@ func startHeartbeat(ws *websocket.Conn, lastPongUnix *int64) {
 			// ws.Close() 会触发客户端的 onclose 回调
 			ws.Close()
 
-			log.Println("发送Ping消息失败，断开连接:", err)
+			log.Println("发送ping失败，断开连接:", err)
 
 			// 退出这个协程
-			return
-		}
-
-		lastPong := time.Unix(atomic.LoadInt64(lastPongUnix), 0)
-		if time.Since(lastPong) > pingInterval+pongTimeout { // 距离上次收到Pong已经超过了8秒就判定客户端断线
-			log.Println("未收到客户端的pong消息，断开连接")
-			ws.Close()
 			return
 		}
 	}
